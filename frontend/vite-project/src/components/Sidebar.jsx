@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Settings, LogOut } from 'lucide-react'
+import { Search, Settings, LogOut, CheckCheck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
@@ -53,73 +53,91 @@ export default function Sidebar() {
       (c.fullName || c.email).toLowerCase().includes(search.toLowerCase())
     )
 
-  const getStatus = (contact) => {
-    if (onlineUsers.includes(contact._id)) return 'Active Now'
-    return 'Offline'
-  }
-
   return (
     <div
-      className="flex flex-col h-full flex-shrink-0"
-      style={{ width: '280px', background: '#1e1f2f', borderRight: '1px solid #2a2b3d' }}
+      className={`h-full flex-col flex-shrink-0 ${
+        selectedUser ? 'hidden md:flex' : 'flex w-full'
+      } md:w-[320px] lg:w-[360px]`}
+      style={{ background: '#17212b', borderRight: '1px solid #0e1621' }}
     >
-      {/* Search bar */}
-      <div className="p-4 pb-2">
+      {/* Top Bar with Search & Telegram Branding */}
+      <div className="p-3.5 pb-2">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-xs"
+              style={{ background: 'linear-gradient(135deg, #2b5278, #5288c1)' }}
+            >
+              TG
+            </div>
+            <span className="font-bold text-base text-white tracking-wide">Telegram</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ background: '#4fae4e' }}
+              title="Real-time connected"
+            />
+            <span className="text-xs text-gray-400 font-medium">
+              {onlineUsers.length} online
+            </span>
+          </div>
+        </div>
+
+        {/* Telegram-style Search Box */}
         <div
-          className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-          style={{ background: '#252638' }}
+          className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5"
+          style={{ background: '#242f3d' }}
         >
-          <Search size={16} style={{ color: '#6b7280' }} />
+          <Search size={16} style={{ color: '#7e8b99' }} />
           <input
             type="text"
-            placeholder="Search"
-            className="bg-transparent text-sm outline-none w-full"
-            style={{ color: '#e5e7eb' }}
+            placeholder="Search contacts"
+            className="bg-transparent text-sm outline-none w-full text-white placeholder-gray-400"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Online only toggle */}
-      <div className="flex items-center justify-between px-4 py-2 mb-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: '#e5e7eb' }}>Online Only</span>
-          <span
-            className="rounded-full inline-block"
-            style={{ width: '8px', height: '8px', background: '#22c55e' }}
-          />
-        </div>
+      {/* Online Only Filter Chip */}
+      <div className="flex items-center justify-between px-4 py-2 border-b" style={{ borderColor: '#202b36' }}>
+        <span className="text-xs font-semibold text-gray-300">Online Users Only</span>
         <button
           onClick={() => setShowOnlineOnly((v) => !v)}
           className="relative inline-flex items-center rounded-full transition-colors"
           style={{
-            width: '42px',
-            height: '24px',
-            background: showOnlineOnly ? '#6d28d9' : '#3b3d5c',
+            width: '38px',
+            height: '20px',
+            background: showOnlineOnly ? '#5288c1' : '#2b3644',
           }}
         >
           <span
             className="inline-block rounded-full bg-white transition-transform"
             style={{
-              width: '18px',
-              height: '18px',
-              transform: showOnlineOnly ? 'translateX(21px)' : 'translateX(3px)',
+              width: '14px',
+              height: '14px',
+              transform: showOnlineOnly ? 'translateX(20px)' : 'translateX(3px)',
             }}
           />
         </button>
       </div>
 
-      {/* Contact list */}
-      <div className="flex-1 overflow-y-auto py-1">
+      {/* Contact List */}
+      <div className="flex-1 overflow-y-auto divide-y divide-[#202b36]/40">
         {loading ? (
-          <div className="flex justify-center items-center h-20">
-            <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center items-center h-24">
+            <div className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-xs py-8" style={{ color: '#6b7280' }}>
-            {showOnlineOnly ? 'No contacts online' : 'No contacts found'}
-          </p>
+          <div className="text-center py-12 px-4">
+            <p className="text-sm text-gray-400">
+              {showOnlineOnly ? 'No contacts online right now' : 'No contacts yet'}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Invite your friends by sharing the app link!
+            </p>
+          </div>
         ) : (
           filtered.map((contact) => {
             const isOnline = onlineUsers.includes(contact._id)
@@ -131,28 +149,27 @@ export default function Sidebar() {
               <button
                 key={contact._id}
                 onClick={() => setSelectedUser(contact)}
-                className="w-full flex items-center gap-3 px-4 py-3 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-3.5 py-3 transition-colors text-left"
                 style={{
-                  background: isSelected ? '#252638' : 'transparent',
-                  borderLeft: isSelected ? '3px solid #6d28d9' : '3px solid transparent',
+                  background: isSelected ? '#2b5278' : 'transparent',
                 }}
               >
-                {/* Avatar with online dot */}
+                {/* Avatar with Telegram green online badge */}
                 <div className="relative flex-shrink-0">
                   {contact.avatarUrl ? (
                     <img
                       src={contact.avatarUrl}
                       alt={name}
                       className="rounded-full object-cover"
-                      style={{ width: '42px', height: '42px' }}
+                      style={{ width: '48px', height: '48px' }}
                     />
                   ) : (
                     <div
-                      className="rounded-full flex items-center justify-center text-white font-semibold text-sm"
+                      className="rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm"
                       style={{
-                        width: '42px',
-                        height: '42px',
-                        background: 'linear-gradient(135deg, #6d28d9, #4f46e5)',
+                        width: '48px',
+                        height: '48px',
+                        background: 'linear-gradient(135deg, #6c8db5, #2b5278)',
                       }}
                     >
                       {initials}
@@ -162,78 +179,78 @@ export default function Sidebar() {
                     <span
                       className="absolute bottom-0 right-0 rounded-full border-2"
                       style={{
-                        width: '11px',
-                        height: '11px',
-                        background: '#22c55e',
-                        borderColor: '#1e1f2f',
+                        width: '13px',
+                        height: '13px',
+                        background: '#4fae4e',
+                        borderColor: '#17212b',
                       }}
                     />
                   )}
                 </div>
 
-                {/* Name + status */}
+                {/* Name & last status */}
                 <div className="text-left min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-sm text-white truncate">{name}</p>
+                    <span className="text-[11px] text-gray-400 ml-1">
+                      {isOnline ? 'now' : ''}
+                    </span>
+                  </div>
                   <p
-                    className="font-semibold text-sm truncate"
-                    style={{ color: isSelected ? '#fff' : '#e5e7eb' }}
+                    className="text-xs truncate mt-1 flex items-center gap-1"
+                    style={{ color: isOnline ? '#4fae4e' : '#7e8b99' }}
                   >
-                    {name}
-                  </p>
-                  <p className="text-xs truncate mt-0.5" style={{ color: isOnline ? '#22c55e' : '#6b7280' }}>
-                    {getStatus(contact)}
+                    {isOnline ? 'online' : 'offline'}
                   </p>
                 </div>
-
-                {/* Online indicator dot on right */}
-                {isOnline && (
-                  <span
-                    className="rounded-full flex-shrink-0"
-                    style={{ width: '8px', height: '8px', background: '#22c55e' }}
-                  />
-                )}
               </button>
             )
           })
         )}
       </div>
 
-      {/* User profile & logout bar at bottom */}
+      {/* Telegram User Profile Bar at Bottom */}
       {user && (
         <div
           className="p-3 flex items-center justify-between border-t"
-          style={{ background: '#191a27', borderColor: '#2a2b3d' }}
+          style={{ background: '#141d26', borderColor: '#202b36' }}
         >
-          <Link to="/profile" className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-80 transition-opacity">
+          <Link
+            to="/profile"
+            className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90 transition-opacity"
+          >
             <div
               className="rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
               style={{
-                width: '32px',
-                height: '32px',
-                background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #5288c1, #2b5278)',
               }}
             >
               {(user.fullName || user.email || 'U').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-white truncate">{user.fullName || 'My Account'}</p>
-              <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+              <p className="text-xs font-bold text-white truncate">
+                {user.fullName || 'My Account'}
+              </p>
+              <p className="text-[11px] text-gray-400 truncate">{user.email}</p>
             </div>
           </Link>
 
           <div className="flex items-center gap-1">
             <Link
               to="/profile"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white transition-colors"
-              title="Profile Settings"
+              className="p-2 rounded-lg text-gray-400 hover:text-white transition-colors"
+              title="Profile"
             >
-              <Settings size={16} />
+              <Settings size={18} />
             </Link>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-400 transition-colors"
               title="Logout"
             >
-              <LogOut size={16} />
+              <LogOut size={18} />
             </button>
           </div>
         </div>

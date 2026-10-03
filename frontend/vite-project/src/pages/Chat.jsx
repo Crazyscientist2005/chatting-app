@@ -1,13 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Paperclip, Send, X, Phone, Video, Search, MoreHorizontal } from 'lucide-react'
+import {
+  Paperclip,
+  Send,
+  X,
+  Phone,
+  Video,
+  Search,
+  MoreVertical,
+  ArrowLeft,
+  Smile,
+} from 'lucide-react'
 import axiosInstance from '../lib/axios'
 import useStore from '../lib/store'
 import { getSocket } from '../lib/socket'
 import Sidebar from '../components/Sidebar'
 import MessageBubble from '../components/MessageBubble'
 
-// Short audio beep for notifications
+// Notification audio
 const notifAudio = typeof Audio !== 'undefined'
   ? new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=')
   : null
@@ -39,7 +49,7 @@ export default function Chat() {
     fetchMessages()
   }, [selectedUser, setMessages])
 
-  // Real-time new messages
+  // Real-time socket message reception
   useEffect(() => {
     const socket = getSocket()
     if (!socket) return
@@ -53,7 +63,7 @@ export default function Chat() {
     return () => socket.off('newMessage', handler)
   }, [selectedUser, addMessage])
 
-  // Auto scroll
+  // Scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -61,12 +71,18 @@ export default function Chat() {
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10 MB'); return }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be under 10 MB')
+      return
+    }
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
 
-  const removeImage = () => { setImageFile(null); setImagePreview(null) }
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+  }
 
   const handleSend = async (e) => {
     e.preventDefault()
@@ -95,36 +111,50 @@ export default function Chat() {
   const selectedIsOnline = selectedUser && onlineUsers.includes(selectedUser._id)
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#1a1b2e' }}>
-      {/* Sidebar */}
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#0e1621' }}>
+      {/* Sidebar: Full width on mobile when no chat is open, 320-360px on desktop */}
       <Sidebar />
 
-      {/* Chat area */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Main Chat Area */}
+      <div
+        className={`flex-col flex-1 h-full overflow-hidden ${
+          selectedUser ? 'flex w-full' : 'hidden md:flex'
+        }`}
+        style={{ background: '#0e1621' }}
+      >
         {selectedUser ? (
           <>
-            {/* Chat header */}
+            {/* Telegram Header */}
             <div
-              className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-              style={{ background: '#1e1f2f', borderBottom: '1px solid #2a2b3d', minHeight: '64px' }}
+              className="flex items-center justify-between px-3 md:px-5 py-2.5 flex-shrink-0"
+              style={{ background: '#17212b', borderBottom: '1px solid #0e1621' }}
             >
-              {/* Left: avatar + name + status */}
-              <div className="flex items-center gap-3">
+              {/* Left side: Back Arrow on Mobile + Avatar + Status */}
+              <div className="flex items-center gap-2.5">
+                {/* Mobile Back Button (Returns to chat list like Telegram) */}
+                <button
+                  onClick={() => setSelectedUser(null)}
+                  className="md:hidden p-1.5 rounded-full text-gray-300 hover:bg-[#242f3d] transition-colors"
+                  title="Back to chats"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+
                 <div className="relative">
                   {selectedUser.avatarUrl ? (
                     <img
                       src={selectedUser.avatarUrl}
                       alt={selectedName}
                       className="rounded-full object-cover"
-                      style={{ width: '40px', height: '40px' }}
+                      style={{ width: '42px', height: '42px' }}
                     />
                   ) : (
                     <div
-                      className="rounded-full flex items-center justify-center text-white font-semibold"
+                      className="rounded-full flex items-center justify-center text-white font-bold"
                       style={{
-                        width: '40px',
-                        height: '40px',
-                        background: 'linear-gradient(135deg, #6d28d9, #4f46e5)',
+                        width: '42px',
+                        height: '42px',
+                        background: 'linear-gradient(135deg, #6c8db5, #2b5278)',
                       }}
                     >
                       {selectedName.charAt(0).toUpperCase()}
@@ -134,51 +164,65 @@ export default function Chat() {
                     <span
                       className="absolute bottom-0 right-0 rounded-full border-2"
                       style={{
-                        width: '10px',
-                        height: '10px',
-                        background: '#22c55e',
-                        borderColor: '#1e1f2f',
+                        width: '12px',
+                        height: '12px',
+                        background: '#4fae4e',
+                        borderColor: '#17212b',
                       }}
                     />
                   )}
                 </div>
+
                 <div>
-                  <p className="font-semibold text-sm text-white">{selectedName}</p>
-                  <p className="text-xs" style={{ color: selectedIsOnline ? '#22c55e' : '#6b7280' }}>
-                    {selectedIsOnline ? '● Online' : 'Offline'}
+                  <p className="font-semibold text-sm text-white leading-tight">
+                    {selectedName}
+                  </p>
+                  <p
+                    className="text-xs mt-0.5"
+                    style={{ color: selectedIsOnline ? '#4fae4e' : '#7e8b99' }}
+                  >
+                    {selectedIsOnline ? 'online' : 'last seen recently'}
                   </p>
                 </div>
               </div>
 
-              {/* Right: action icons */}
+              {/* Right side: Telegram action icons */}
               <div className="flex items-center gap-1">
-                {[Phone, Video, Search, MoreHorizontal].map((Icon, i) => (
-                  <button
-                    key={i}
-                    className="rounded-xl p-2 transition-colors"
-                    style={{ background: 'transparent', color: '#9ca3af' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#252638')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <Icon size={18} />
-                  </button>
-                ))}
+                <button className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-[#242f3d] transition-colors">
+                  <Phone size={18} />
+                </button>
+                <button className="hidden sm:inline-flex p-2 rounded-full text-gray-400 hover:text-white hover:bg-[#242f3d] transition-colors">
+                  <Video size={18} />
+                </button>
+                <button className="hidden sm:inline-flex p-2 rounded-full text-gray-400 hover:text-white hover:bg-[#242f3d] transition-colors">
+                  <Search size={18} />
+                </button>
+                <button className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-[#242f3d] transition-colors">
+                  <MoreVertical size={18} />
+                </button>
               </div>
             </div>
 
-            {/* Messages area */}
+            {/* Telegram Messages Scroll Area */}
             <div
-              className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4"
-              style={{ background: '#1a1b2e' }}
+              className="flex-1 overflow-y-auto px-3 md:px-8 py-4 flex flex-col gap-3"
+              style={{
+                background: '#0e1621',
+                backgroundImage: 'radial-gradient(circle at 50% 50%, #111a24 0%, #0e1621 100%)',
+              }}
             >
               {loadingMessages ? (
                 <div className="flex justify-center items-center h-full">
-                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
-                  <p className="text-sm" style={{ color: '#6b7280' }}>No messages yet</p>
-                  <p className="text-xs" style={{ color: '#4b5563' }}>Say hi to {selectedName}! 👋</p>
+                  <div
+                    className="px-4 py-2 rounded-xl text-xs font-medium text-gray-300"
+                    style={{ background: '#182533' }}
+                  >
+                    No messages here yet... Say hello! 👋
+                  </div>
                 </div>
               ) : (
                 messages.map((msg) => (
@@ -188,80 +232,89 @@ export default function Chat() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Image preview */}
+            {/* Image Preview before sending */}
             {imagePreview && (
-              <div className="px-5 pb-2">
+              <div className="px-4 py-2 bg-[#17212b] border-t border-[#0e1621]">
                 <div className="relative inline-block">
                   <img
                     src={imagePreview}
-                    alt="preview"
-                    className="rounded-xl object-cover"
+                    alt="attachment"
+                    className="rounded-lg object-cover"
                     style={{ width: '80px', height: '80px' }}
                   />
                   <button
                     onClick={removeImage}
-                    className="absolute -top-2 -right-2 rounded-full flex items-center justify-center text-white"
-                    style={{ width: '20px', height: '20px', background: '#ef4444', fontSize: '12px' }}
+                    className="absolute -top-2 -right-2 rounded-full flex items-center justify-center text-white shadow-md"
+                    style={{ width: '22px', height: '22px', background: '#e53935' }}
                   >
-                    <X size={12} />
+                    <X size={13} />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Input bar */}
+            {/* Telegram Input Bar */}
             <form
               onSubmit={handleSend}
-              className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
-              style={{ background: '#1a1b2e', borderTop: '1px solid #2a2b3d' }}
+              className="flex items-center gap-2 px-3 md:px-6 py-3 flex-shrink-0"
+              style={{ background: '#17212b', borderTop: '1px solid #0e1621' }}
             >
-              {/* Attachment */}
-              <label className="cursor-pointer flex-shrink-0" style={{ color: '#6b7280' }}>
+              {/* Attachment Icon */}
+              <label
+                className="p-2 text-gray-400 hover:text-white cursor-pointer rounded-full hover:bg-[#242f3d] transition-colors"
+                title="Attach photo"
+              >
                 <Paperclip size={20} />
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
+                />
               </label>
 
-              {/* Text input */}
+              {/* Message Input Box */}
               <input
                 type="text"
-                placeholder="Type a message..."
+                placeholder="Write a message..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="flex-1 rounded-2xl px-5 py-3 text-sm outline-none text-white"
-                style={{ background: '#252638', border: '1px solid #3b3d5c', color: '#e5e7eb' }}
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none text-white placeholder-gray-400"
+                style={{ background: '#242f3d' }}
               />
 
-              {/* Send button */}
+              {/* Send Button */}
               <button
                 type="submit"
                 disabled={sending || (!text.trim() && !imageFile)}
-                className="rounded-full flex items-center justify-center flex-shrink-0 transition-opacity"
+                className="rounded-full flex items-center justify-center flex-shrink-0 transition-transform active:scale-95"
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  background: '#6d28d9',
-                  opacity: sending || (!text.trim() && !imageFile) ? 0.5 : 1,
+                  width: '42px',
+                  height: '42px',
+                  background:
+                    text.trim() || imageFile
+                      ? '#5288c1'
+                      : '#242f3d',
+                  color: text.trim() || imageFile ? '#ffffff' : '#6c7883',
                 }}
               >
                 {sending ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Send size={18} color="white" />
+                  <Send size={18} />
                 )}
               </button>
             </form>
           </>
         ) : (
-          /* Empty state */
-          <div className="flex flex-col flex-1 items-center justify-center gap-4" style={{ color: '#4b5563' }}>
+          /* Empty State (when no conversation is selected on desktop) */
+          <div className="flex flex-col flex-1 items-center justify-center gap-3 select-none">
             <div
-              className="rounded-2xl flex items-center justify-center"
-              style={{ width: '64px', height: '64px', background: '#252638' }}
+              className="px-4 py-1.5 rounded-full text-xs font-semibold text-gray-400 shadow-sm"
+              style={{ background: '#182533' }}
             >
-              <Send size={28} color="#6d28d9" />
+              Select a chat to start messaging
             </div>
-            <p className="text-lg font-semibold" style={{ color: '#9ca3af' }}>Select a conversation</p>
-            <p className="text-sm" style={{ color: '#6b7280' }}>Pick someone from the sidebar to start chatting</p>
           </div>
         )}
       </div>
