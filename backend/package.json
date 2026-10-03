@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node src/server.js",
     "start": "node src/server.js",
-    "build": "npm install && npm install --prefix ../frontend/vite-project && npm run build --prefix ../frontend/vite-project"
+    "build": "npm install && npm install --prefix ../frontend/vite-project --include=dev && npm run build --prefix ../frontend/vite-project"
   },
   "dependencies": {
     "@arcjet/node": "^1.14.0",
