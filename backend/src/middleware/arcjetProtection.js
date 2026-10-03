@@ -1,17 +1,27 @@
 import { aj } from "../lib/arcjet.js";
 
 /**
- * Arcjet protection middleware. Applies rate‑limiting to every request.
- * If the request exceeds the limit, Arcjet will throw an error which we
- * translate into a 429 response. `failOpen: true` lets the request pass
- * when Arcjet is unavailable.
+ * Arcjet protection middleware.
+ * If Arcjet key is missing or dummy, passes through.
+ * If Arcjet fails due to reverse proxy IP headers, fails open so users aren't blocked.
  */
 export default async function arcjetProtection(req, res, next) {
+  if (
+    !process.env.ARCKET_KEY ||
+    process.env.ARCKET_KEY.includes("dummy") ||
+    process.env.ARCKET_KEY.includes("placeholder")
+  ) {
+    return next();
+  }
+
   try {
-    await aj.protect(req, { failOpen: true });
+    const decision = await aj.protect(req, { requested: 1 });
+    if (decision && decision.isDenied()) {
+      return res.status(429).json({ message: "Too many requests – please try again later." });
+    }
     next();
   } catch (err) {
-    console.error("Arcjet limit exceeded:", err);
-    res.status(429).json({ message: "Too many requests – please try again later." });
+    console.warn("Arcjet bypass (failing open):", err.message || err);
+    next();
   }
 }
