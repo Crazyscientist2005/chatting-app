@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Image, Send, X, Loader2 } from 'lucide-react'
+import { Paperclip, Send, X, Phone, Video, Search, MoreHorizontal } from 'lucide-react'
 import axiosInstance from '../lib/axios'
 import useStore from '../lib/store'
 import { getSocket } from '../lib/socket'
 import Sidebar from '../components/Sidebar'
-import Navbar from '../components/Navbar'
 import MessageBubble from '../components/MessageBubble'
 
-// Notification sound (base64-encoded short beep)
-const notifSound = new Audio(
-  'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAA' +
-  'EAAQARKwAAESsAAAEACABkYXRhAAAAAA=='
-)
+// Short audio beep for notifications
+const notifAudio = typeof Audio !== 'undefined'
+  ? new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=')
+  : null
 
 export default function Chat() {
-  const { user, selectedUser, setSelectedUser, messages, setMessages, addMessage } = useStore()
+  const { user, selectedUser, setSelectedUser, messages, setMessages, addMessage, onlineUsers } = useStore()
   const [text, setText] = useState('')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -23,9 +21,10 @@ export default function Chat() {
   const [loadingMessages, setLoadingMessages] = useState(false)
   const bottomRef = useRef(null)
 
-  // ── Fetch messages when contact selected ─────────────────────────────────
+  // Fetch messages when contact is selected
   useEffect(() => {
     if (!selectedUser) return
+    setMessages([])
     const fetchMessages = async () => {
       setLoadingMessages(true)
       try {
@@ -40,29 +39,25 @@ export default function Chat() {
     fetchMessages()
   }, [selectedUser, setMessages])
 
-  // ── Real-time: listen for new messages ───────────────────────────────────
+  // Real-time new messages
   useEffect(() => {
     const socket = getSocket()
     if (!socket) return
-
     const handler = (msg) => {
       if (selectedUser && msg.sender === selectedUser._id) {
         addMessage(msg)
-        // play notification sound
-        notifSound.play().catch(() => {})
+        notifAudio?.play().catch(() => {})
       }
     }
-
     socket.on('newMessage', handler)
     return () => socket.off('newMessage', handler)
   }, [selectedUser, addMessage])
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────────
+  // Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // ── Image picker ─────────────────────────────────────────────────────────
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -71,12 +66,8 @@ export default function Chat() {
     setImagePreview(URL.createObjectURL(file))
   }
 
-  const removeImage = () => {
-    setImageFile(null)
-    setImagePreview(null)
-  }
+  const removeImage = () => { setImageFile(null); setImagePreview(null) }
 
-  // ── Send message ─────────────────────────────────────────────────────────
   const handleSend = async (e) => {
     e.preventDefault()
     if (!text.trim() && !imageFile) return
@@ -85,7 +76,6 @@ export default function Chat() {
       const formData = new FormData()
       if (text.trim()) formData.append('text', text.trim())
       if (imageFile) formData.append('image', imageFile)
-
       const { data } = await axiosInstance.post(
         `/message/send/${selectedUser._id}`,
         formData,
@@ -95,123 +85,186 @@ export default function Chat() {
       setText('')
       removeImage()
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to send message')
+      toast.error(err?.response?.data?.message || 'Failed to send')
     } finally {
       setSending(false)
     }
   }
 
+  const selectedName = selectedUser?.fullName || selectedUser?.email || ''
+  const selectedIsOnline = selectedUser && onlineUsers.includes(selectedUser._id)
+
   return (
-    <div className="flex flex-col h-screen bg-base-200">
-      <Navbar />
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: '#1a1b2e' }}>
+      {/* Sidebar */}
+      <Sidebar />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
-
-        {/* Chat area */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {selectedUser ? (
-            <>
-              {/* Chat header */}
-              <div className="flex items-center gap-3 px-4 py-3 bg-base-100 border-b border-base-300">
-                <div className="avatar">
-                  <div className="w-10 h-10 rounded-full">
+      {/* Chat area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {selectedUser ? (
+          <>
+            {/* Chat header */}
+            <div
+              className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+              style={{ background: '#1e1f2f', borderBottom: '1px solid #2a2b3d', minHeight: '64px' }}
+            >
+              {/* Left: avatar + name + status */}
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  {selectedUser.avatarUrl ? (
                     <img
-                      src={selectedUser.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.fullName || selectedUser.email)}&background=random`}
-                      alt={selectedUser.fullName}
+                      src={selectedUser.avatarUrl}
+                      alt={selectedName}
+                      className="rounded-full object-cover"
+                      style={{ width: '40px', height: '40px' }}
                     />
-                  </div>
+                  ) : (
+                    <div
+                      className="rounded-full flex items-center justify-center text-white font-semibold"
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        background: 'linear-gradient(135deg, #6d28d9, #4f46e5)',
+                      }}
+                    >
+                      {selectedName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {selectedIsOnline && (
+                    <span
+                      className="absolute bottom-0 right-0 rounded-full border-2"
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        background: '#22c55e',
+                        borderColor: '#1e1f2f',
+                      }}
+                    />
+                  )}
                 </div>
                 <div>
-                  <p className="font-semibold leading-none">{selectedUser.fullName || selectedUser.email}</p>
-                  <p className="text-xs text-base-content/50 mt-0.5">
-                    {useStore.getState().onlineUsers.includes(selectedUser._id) ? (
-                      <span className="text-success">● Online</span>
-                    ) : (
-                      'Offline'
-                    )}
+                  <p className="font-semibold text-sm text-white">{selectedName}</p>
+                  <p className="text-xs" style={{ color: selectedIsOnline ? '#22c55e' : '#6b7280' }}>
+                    {selectedIsOnline ? '● Online' : 'Offline'}
                   </p>
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                {loadingMessages ? (
-                  <div className="flex justify-center items-center h-full">
-                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                  </div>
-                ) : messages.length === 0 ? (
-                  <p className="text-center text-base-content/40 mt-10">No messages yet. Say hi! 👋</p>
-                ) : (
-                  messages.map((msg) => (
-                    <MessageBubble key={msg._id} msg={msg} currentUserId={user._id} />
-                  ))
-                )}
-                <div ref={bottomRef} />
+              {/* Right: action icons */}
+              <div className="flex items-center gap-1">
+                {[Phone, Video, Search, MoreHorizontal].map((Icon, i) => (
+                  <button
+                    key={i}
+                    className="rounded-xl p-2 transition-colors"
+                    style={{ background: 'transparent', color: '#9ca3af' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#252638')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <Icon size={18} />
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {/* Image preview */}
-              {imagePreview && (
-                <div className="relative w-20 h-20 mx-4 mb-2">
-                  <img src={imagePreview} alt="preview" className="w-20 h-20 object-cover rounded-lg" />
+            {/* Messages area */}
+            <div
+              className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4"
+              style={{ background: '#1a1b2e' }}
+            >
+              {loadingMessages ? (
+                <div className="flex justify-center items-center h-full">
+                  <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full gap-2">
+                  <p className="text-sm" style={{ color: '#6b7280' }}>No messages yet</p>
+                  <p className="text-xs" style={{ color: '#4b5563' }}>Say hi to {selectedName}! 👋</p>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <MessageBubble key={msg._id} msg={msg} currentUserId={user._id} />
+                ))
+              )}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Image preview */}
+            {imagePreview && (
+              <div className="px-5 pb-2">
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="rounded-xl object-cover"
+                    style={{ width: '80px', height: '80px' }}
+                  />
                   <button
                     onClick={removeImage}
-                    className="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error"
+                    className="absolute -top-2 -right-2 rounded-full flex items-center justify-center text-white"
+                    style={{ width: '20px', height: '20px', background: '#ef4444', fontSize: '12px' }}
                   >
-                    <X className="w-3 h-3" />
+                    <X size={12} />
                   </button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Input bar */}
-              <form
-                onSubmit={handleSend}
-                className="flex items-center gap-2 px-4 py-3 bg-base-100 border-t border-base-300"
+            {/* Input bar */}
+            <form
+              onSubmit={handleSend}
+              className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
+              style={{ background: '#1a1b2e', borderTop: '1px solid #2a2b3d' }}
+            >
+              {/* Attachment */}
+              <label className="cursor-pointer flex-shrink-0" style={{ color: '#6b7280' }}>
+                <Paperclip size={20} />
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+              </label>
+
+              {/* Text input */}
+              <input
+                type="text"
+                placeholder="Type a message..."
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="flex-1 rounded-2xl px-5 py-3 text-sm outline-none text-white"
+                style={{ background: '#252638', border: '1px solid #3b3d5c', color: '#e5e7eb' }}
+              />
+
+              {/* Send button */}
+              <button
+                type="submit"
+                disabled={sending || (!text.trim() && !imageFile)}
+                className="rounded-full flex items-center justify-center flex-shrink-0 transition-opacity"
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  background: '#6d28d9',
+                  opacity: sending || (!text.trim() && !imageFile) ? 0.5 : 1,
+                }}
               >
-                <label className="cursor-pointer text-base-content/50 hover:text-primary transition-colors">
-                  <Image className="w-5 h-5" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                </label>
-
-                <input
-                  type="text"
-                  className="input input-bordered flex-1 input-sm"
-                  placeholder="Type a message…"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                />
-
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm btn-circle"
-                  disabled={sending || (!text.trim() && !imageFile)}
-                >
-                  {sending
-                    ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <Send className="w-4 h-4" />}
-                </button>
-              </form>
-            </>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center text-base-content/40 gap-3">
-              <MessageSquare className="w-16 h-16 opacity-20" />
-              <p className="text-lg font-medium">Select a conversation</p>
-              <p className="text-sm">Pick someone from the sidebar to start chatting</p>
+                {sending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send size={18} color="white" />
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          /* Empty state */
+          <div className="flex flex-col flex-1 items-center justify-center gap-4" style={{ color: '#4b5563' }}>
+            <div
+              className="rounded-2xl flex items-center justify-center"
+              style={{ width: '64px', height: '64px', background: '#252638' }}
+            >
+              <Send size={28} color="#6d28d9" />
             </div>
-          )}
-        </div>
+            <p className="text-lg font-semibold" style={{ color: '#9ca3af' }}>Select a conversation</p>
+            <p className="text-sm" style={{ color: '#6b7280' }}>Pick someone from the sidebar to start chatting</p>
+          </div>
+        )}
       </div>
     </div>
-  )
-}
-
-// Inline import for the icon used in empty state
-function MessageSquare(props) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
   )
 }

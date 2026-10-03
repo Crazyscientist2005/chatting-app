@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MessageSquare, User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff, MessageSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
 import useStore from '../lib/store'
@@ -18,7 +18,6 @@ export default function Signup() {
   const validate = () => {
     if (!form.fullName.trim()) { toast.error('Full name is required'); return false }
     if (!form.email.trim()) { toast.error('Email is required'); return false }
-    if (!/\S+@\S+\.\S+/.test(form.email)) { toast.error('Enter a valid email'); return false }
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return false }
     return true
   }
@@ -39,83 +38,104 @@ export default function Signup() {
     }
   }
 
+  const inputStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    background: '#252638',
+    border: '1px solid #3b3d5c',
+    borderRadius: '12px',
+    padding: '12px 16px',
+  }
+
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
-      <div className="card w-full max-w-md bg-base-100 shadow-xl">
-        <div className="card-body gap-4">
-          {/* Logo */}
-          <div className="flex flex-col items-center gap-2 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-              <MessageSquare className="w-6 h-6 text-primary" />
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#1a1b2e' }}>
+      <div
+        className="w-full rounded-2xl p-8"
+        style={{ maxWidth: '400px', background: '#1e1f2f', border: '1px solid #2a2b3d' }}
+      >
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <div
+            className="rounded-2xl flex items-center justify-center"
+            style={{ width: '52px', height: '52px', background: '#6d28d9' }}
+          >
+            <MessageSquare size={26} color="white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">Create Account</h1>
+          <p className="text-sm" style={{ color: '#6b7280' }}>Get started for free</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Full Name */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: '#9ca3af' }}>Full Name</label>
+            <div style={inputStyle}>
+              <User size={16} color="#6b7280" />
+              <input
+                type="text"
+                name="fullName"
+                placeholder="John Doe"
+                className="bg-transparent text-sm outline-none flex-1 text-white"
+                value={form.fullName}
+                onChange={handleChange}
+              />
             </div>
-            <h1 className="text-2xl font-bold">Create Account</h1>
-            <p className="text-base-content/60 text-sm">Get started with a free account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Full Name */}
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Full Name</span></label>
-              <div className="input input-bordered flex items-center gap-2">
-                <User className="w-4 h-4 text-base-content/40" />
-                <input
-                  type="text"
-                  name="fullName"
-                  placeholder="John Doe"
-                  className="grow"
-                  value={form.fullName}
-                  onChange={handleChange}
-                />
-              </div>
+          {/* Email */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: '#9ca3af' }}>Email</label>
+            <div style={inputStyle}>
+              <Mail size={16} color="#6b7280" />
+              <input
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                className="bg-transparent text-sm outline-none flex-1 text-white"
+                value={form.email}
+                onChange={handleChange}
+              />
             </div>
+          </div>
 
-            {/* Email */}
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Email</span></label>
-              <div className="input input-bordered flex items-center gap-2">
-                <Mail className="w-4 h-4 text-base-content/40" />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  className="grow"
-                  value={form.email}
-                  onChange={handleChange}
-                />
-              </div>
+          {/* Password */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: '#9ca3af' }}>Password</label>
+            <div style={inputStyle}>
+              <Lock size={16} color="#6b7280" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Min 6 characters"
+                className="bg-transparent text-sm outline-none flex-1 text-white"
+                value={form.password}
+                onChange={handleChange}
+              />
+              <button type="button" onClick={() => setShowPassword((v) => !v)}>
+                {showPassword
+                  ? <EyeOff size={16} color="#6b7280" />
+                  : <Eye size={16} color="#6b7280" />}
+              </button>
             </div>
+          </div>
 
-            {/* Password */}
-            <div className="form-control">
-              <label className="label"><span className="label-text font-medium">Password</span></label>
-              <div className="input input-bordered flex items-center gap-2">
-                <Lock className="w-4 h-4 text-base-content/40" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="Min 6 characters"
-                  className="grow"
-                  value={form.password}
-                  onChange={handleChange}
-                />
-                <button type="button" onClick={() => setShowPassword((v) => !v)}>
-                  {showPassword
-                    ? <EyeOff className="w-4 h-4 text-base-content/40" />
-                    : <Eye className="w-4 h-4 text-base-content/40" />}
-                </button>
-              </div>
-            </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl py-3 text-sm font-semibold text-white mt-2"
+            style={{ background: '#6d28d9', opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? 'Creating account...' : 'Create Account'}
+          </button>
+        </form>
 
-            <button type="submit" className="btn btn-primary w-full mt-2" disabled={loading}>
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-base-content/60">
-            Already have an account?{' '}
-            <Link to="/login" className="link link-primary font-medium">Sign in</Link>
-          </p>
-        </div>
+        <p className="text-center text-sm mt-6" style={{ color: '#6b7280' }}>
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium" style={{ color: '#a78bfa' }}>
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )
